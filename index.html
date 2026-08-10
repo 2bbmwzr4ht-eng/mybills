@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f8">
+<title>My Bills</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f6f8;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:680px;margin:auto;padding:18px 16px 40px}h1{font-size:32px;margin:4px 0 2px}.month{color:#666;margin-bottom:18px}.summary{background:#111;color:white;border-radius:22px;padding:20px;margin-bottom:14px}.big{font-size:34px;font-weight:800;margin:5px 0 16px}.smallgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#252525;border-radius:14px;padding:12px}.stat span{display:block;color:#bbb;font-size:12px}.stat b{font-size:19px}.card{background:white;border-radius:20px;padding:18px;margin-bottom:14px}.bill{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid #eee}.bill:last-child{border:0}.name{font-weight:700}.details{font-size:13px;color:#777;margin-top:3px}.amt{font-weight:700;text-align:right}.check{width:28px;height:28px;margin-top:5px}.actions{display:flex;gap:8px}.actions button,.add button{border:0;border-radius:13px;padding:12px 15px;font-weight:700;font-size:15px}.primary{background:#111;color:#fff}.secondary{background:#eee}.danger{background:#ffe6e6;color:#a00}.form{display:grid;gap:9px}.form input{padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px;width:100%}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.empty{text-align:center;color:#777;padding:22px}.edit{margin-left:8px;border:0;background:#eee;border-radius:9px;padding:5px 8px}.paidrow{opacity:.5}@media(max-width:420px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="app">
+<h1>My Bills</h1><div class="month" id="month"></div>
+<div class="summary"><div style="font-size:13px;color:#bbb">Still Needed</div><div class="big" id="owe">$0.00</div>
+<div class="smallgrid"><div class="stat"><span>Total Bills</span><b id="total">$0.00</b></div><div class="stat"><span>Paid</span><b id="paid">$0.00</b></div></div></div>
+<div class="card"><h2 style="margin:0 0 4px">Bills</h2><div id="list"></div></div>
+<div class="card add"><h3 style="margin-top:0">Add Bill</h3><div class="form"><input id="name" placeholder="Bill name"><div class="row"><input id="amount" type="number" step="0.01" inputmode="decimal" placeholder="Amount"><input id="due" type="date"></div><button class="primary" onclick="add()">Add Bill</button></div></div>
+<div class="card"><div class="actions"><button class="primary" onclick="nextMonth()">＋ New Month</button><button class="secondary" onclick="resetMonth()">Clear</button></div></div>
+</div>
+<script>
+const K="myBillsV2";let d=JSON.parse(localStorage.getItem(K)||"null")||{month:new Date().toISOString().slice(0,7),bills:[]};
+const $=x=>document.getElementById(x),money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n||0);
+function save(){localStorage.setItem(K,JSON.stringify(d))}
+function title(){let [y,m]=d.month.split("-");return new Date(y,m-1,1).toLocaleDateString("en-US",{month:"long",year:"numeric"})}
+function render(){$("month").textContent=title();let total=d.bills.reduce((s,b)=>s+ +b.amount,0),paid=d.bills.filter(b=>b.paid).reduce((s,b)=>s+ +b.amount,0);$("total").textContent=money(total);$("paid").textContent=money(paid);$("owe").textContent=money(total-paid);let l=$("list");l.innerHTML="";if(!d.bills.length){l.innerHTML='<div class="empty">No bills yet.</div>';return}d.bills.forEach((b,i)=>{let due=b.due?new Date(b.due+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"No due date";l.insertAdjacentHTML("beforeend",`<div class="bill ${b.paid?"paidrow":""}"><div><div class="name">${esc(b.name)} <button class="edit" onclick="editBill(${i})">Edit</button></div><div class="details">${due} · ${b.paid?"Paid":"Not Paid"}</div></div><div><div class="amt">${money(b.amount)}</div><input class="check" type="checkbox" ${b.paid?"checked":""} onchange="toggle(${i})"></div></div>`)})}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function add(){let n=$("name").value.trim(),a=+$("amount").value,du=$("due").value;if(!n||!a)return alert("Enter a bill name and amount.");d.bills.push({name:n,amount:a,due:du,paid:false});$("name").value=$("amount").value=$("due").value="";save();render()}
+function toggle(i){d.bills[i].paid=!d.bills[i].paid;save();render()}
+function editBill(i){let b=d.bills[i],n=prompt("Bill name:",b.name);if(n===null)return;let a=prompt("Amount:",b.amount);if(a===null)return;b.name=n.trim()||b.name;b.amount=+a||b.amount;save();render()}
+function nextMonth(){let x=new Date(d.month+"-01T00:00:00");x.setMonth(x.getMonth()+1);d.month=x.toISOString().slice(0,7);d.bills=d.bills.map(b=>({...b,paid:false}));save();render()}
+function resetMonth(){if(confirm("Remove all bills from this month?")){d.bills=[];save();render()}}
+render();
+</script></body></html>
